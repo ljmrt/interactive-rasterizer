@@ -33,6 +33,14 @@ int main() {
 
     // main "render loop"
     while (!glfwWindowShouldClose(window)) {
+        // TODO: process_input function for generic input handling?
+        if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_X))  // if "x" key pressed.
+            glfwSetWindowShouldClose(window, true);
+
+        // fill the viewport with a RGB color.
+        glClearColor(206.0/255.0, 102.0/255.0, 102.0/255.0, 255.0/255.0);
+        glClear(GL_COLOR_BUFFER_BIT);
+        
         glfwSwapBuffers(window);  // swap the (color) front(final output) and back(drawn/rendered to) buffers to prevent display flickering problems.
         glfwPollEvents();  // poll for input(keyboard/mouse) events, update the window state, call callbacks, etc.
     }
