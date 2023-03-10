@@ -1,6 +1,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <cmath>
 
 #define GL_WINDOW_WIDTH 640
 #define GL_WINDOW_HEIGHT 640
@@ -10,15 +11,19 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 
 const char *vertex_shader_source = "#version 330 core\n"
     "layout (location = 0) in vec3 a_pos;\n"
+    "layout (location = 1) in vec3 a_color;\n"
+    "out vec3 our_color;\n"
     "void main()\n"
     "{\n"
-    "    gl_Position = vec4(a_pos.x, a_pos.y, a_pos.z, 1.0);\n"
+    "    gl_Position = vec4(a_pos, 1.0);\n"
+    "    our_color = a_color;\n"
     "}\0";
 const char *fragment_shader_source = "#version 330 core\n"
     "out vec4 frag_color;\n"
+    "uniform vec4 our_color;\n"
     "void main()\n"
     "{\n"
-    "    frag_color = vec4(206.0f/255.0f, 102.0f/255.0f, 102.0f/255.0f, 255.0f/255.0f);\n"
+    "    frag_color = our_color;\n"
     "}\0";
 
 float triangle_vertices[] = {
@@ -122,6 +127,14 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT);
         
         glUseProgram(shader_program);  // use the shader program in further shader/rendering calls.
+
+        // calculate vertex color/update the uniform color.
+        float time_value = glfwGetTime();
+        float yellow_value = (sin(time_value) / 2.0f) + 0.5f;
+        int vertex_color_location = glGetUniformLocation(shader_program, "our_color");
+        glUniform4f(vertex_color_location, yellow_value, yellow_value, 0.0f, 1.0f);
+
+        // render the triangle.
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 3);  // function arguments(in reference to the vertex array): primitive type, starting index, amount of vertices to draw
         
