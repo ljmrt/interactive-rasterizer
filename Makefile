@@ -24,5 +24,4 @@ $(TARGET): $(OBJECTS)
 	$(CXX) $(OBJECTS) $(CXXFLAGS)  $(LDLIBS) -o $@
 
 clean:
-	-rm -f obj/*.o
 	-rm -f $(TARGET)
