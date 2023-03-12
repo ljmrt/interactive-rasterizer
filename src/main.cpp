@@ -1,6 +1,9 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <stb_image/stb_image.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 #include <cmath>
 #include <shader.h>
@@ -138,6 +141,10 @@ int main() {
     our_shader.use();
     our_shader.set_int("texture0", 0);
     our_shader.set_int("texture1", 1);
+
+    float saved_sin = (float)sin(glfwGetTime());
+    float saved_time = (float)glfwGetTime();
+    bool saved_bool = false;
     
     // main "render loop".
     while (!glfwWindowShouldClose(window)) {
@@ -155,8 +162,24 @@ int main() {
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture1);
         
-        // render the triangle.
+        // "activate" the shader program.
         our_shader.use();
+
+        // apply transformation.
+        float glfw_time = (float)glfwGetTime();
+        if (glfw_time >= saved_time + 2.0f) {  // if 2 seconds have passed.
+            saved_time = glfw_time;
+            saved_bool = !saved_bool;
+        }
+        float sin_time = sin(glfw_time);
+        saved_sin += saved_bool ? .003f : -.003f;  // add or remove depending on 2 second flag.
+        glm::mat4 transformation = glm::mat4(1.0f);
+        transformation = glm::translate(transformation, glm::vec3(saved_sin, -sin_time, 0.0f));
+        transformation = glm::rotate(transformation, -(glfw_time * 0.25f), glm::vec3(0.0, 0.0, 1.0));
+        unsigned int transform_location = glGetUniformLocation(our_shader.ID, "transform");
+        glUniformMatrix4fv(transform_location, 1, GL_FALSE, glm::value_ptr(transformation));
+
+        // render the triangle.
         glBindVertexArray(VAO);
         // function arguments: primitive type, number of vertices/elements, indice type, indice storage offset
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
