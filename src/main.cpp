@@ -14,7 +14,7 @@
 // TODO: move elsewhere(public facing[include directory] header)
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 
-float vertices[] = {
+float plane_vertices[] = {
      // positions         // colors           // texture coords
      0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
      0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
@@ -22,9 +22,48 @@ float vertices[] = {
     -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // top left 
 };  // TODO: custom model implementation or generic vec3 class."
 
-unsigned int indices[] = {
-    0, 1, 3,  // first triangle
-    1, 2, 3  // second triangle
+float cube_vertices[] = {
+    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+     0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 };
 
 int main() {
@@ -49,6 +88,7 @@ int main() {
 
     glViewport(0, 0, GL_WINDOW_WIDTH, GL_WINDOW_HEIGHT);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);  // set GLFW to call frame buffer "resize" function for the viewport whenever the window/framebuffer's size is modified.
+    glEnable(GL_DEPTH_TEST);  // enable z-buffer/depth testing functionality.
 
     unsigned int VBO;  // vertex buffer object.
     glGenBuffers(1, &VBO);
@@ -59,31 +99,17 @@ int main() {
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
-    unsigned int EBO;
-    glGenBuffers(1, &EBO);
-
     glBindBuffer(GL_ARRAY_BUFFER, VBO);  // bind "VBO" to use it on GL_ARRAY_BUFFER calls.
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cube_vertices), cube_vertices, GL_STATIC_DRAW);
 
     // vertex position attribute.
     // function arguments(in reference to the vertex attribute): location(which attribute), size, data type, normalize data flag, stride(space between consecutive attributes)
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    
-    // vertex color attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
 
     // vertex texture coordinate attribute
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-
-    // bind VBO and VAO buffers.
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     // antennae texture.
     // TODO: add texture class(similar implementation to shader class)
@@ -142,9 +168,17 @@ int main() {
     our_shader.set_int("texture0", 0);
     our_shader.set_int("texture1", 1);
 
-    float saved_sin = (float)sin(glfwGetTime());
-    float saved_time = (float)glfwGetTime();
-    bool saved_bool = false;
+    // set the coordinate/space matrices(model is set dynamically).
+    glm::mat4 view = glm::mat4(1.0f);
+    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));  // translate scene inverse of the camera.
+    glm::mat4 projection = glm::mat4(1.0f);
+    projection = glm::perspective(glm::radians(45.0f), (float)GL_WINDOW_WIDTH / (float)GL_WINDOW_HEIGHT, 0.1f, 100.0f);
+
+    // set the corresponding uniforms.
+    unsigned int view_location = glGetUniformLocation(our_shader.ID, "view");
+    glUniformMatrix4fv(view_location, 1, GL_FALSE, glm::value_ptr(view));
+    unsigned int projection_location = glGetUniformLocation(our_shader.ID, "projection");
+    glUniformMatrix4fv(projection_location, 1, GL_FALSE, glm::value_ptr(projection));
     
     // main "render loop".
     while (!glfwWindowShouldClose(window)) {
@@ -154,7 +188,9 @@ int main() {
 
         // fill the viewport with a RGB color.
         glClearColor(140.0f/255.0f, 140.0f/255.0f, 140.0f/255.0f, 255.0f/255.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT);  // clear the color buffer.
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);  // clear the depth(z) buffer.
 
         // activate and bind the textures.
         glActiveTexture(GL_TEXTURE0);
@@ -165,24 +201,18 @@ int main() {
         // "activate" the shader program.
         our_shader.use();
 
-        // apply transformation.
-        float glfw_time = (float)glfwGetTime();
-        if (glfw_time >= saved_time + 2.0f) {  // if 2 seconds have passed.
-            saved_time = glfw_time;
-            saved_bool = !saved_bool;
-        }
-        float sin_time = sin(glfw_time);
-        saved_sin += saved_bool ? .003f : -.003f;  // add or remove depending on 2 second flag.
-        glm::mat4 transformation = glm::mat4(1.0f);
-        transformation = glm::translate(transformation, glm::vec3(saved_sin, -sin_time, 0.0f));
-        transformation = glm::rotate(transformation, -(glfw_time * 0.25f), glm::vec3(0.0, 0.0, 1.0));
-        unsigned int transform_location = glGetUniformLocation(our_shader.ID, "transform");
-        glUniformMatrix4fv(transform_location, 1, GL_FALSE, glm::value_ptr(transformation));
+        // model coordinate/space matrix
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.5f, 1.0f, 0.0f));  // rotate on the x axis.
+
+        // set the corresponding uniform. 
+        int model_location = glGetUniformLocation(our_shader.ID, "model");
+        glUniformMatrix4fv(model_location, 1, GL_FALSE, glm::value_ptr(model));
 
         // render the triangle.
         glBindVertexArray(VAO);
-        // function arguments: primitive type, number of vertices/elements, indice type, indice storage offset
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        // function arguments: primitive type, starting index, vertice count.
+        glDrawArrays(GL_TRIANGLES, 0, 36);
         
         glfwSwapBuffers(window);  // swap the (color) front(final output) and back(drawn/rendered to) buffers to prevent display flickering problems.
         glfwPollEvents();  // poll for input(keyboard/mouse) events, update the window state, call callbacks, etc.
@@ -191,7 +221,6 @@ int main() {
     // de-allocate uneeded resources.
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
 
     // terminate GLFW gracefully.
     glfwTerminate();
