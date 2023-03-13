@@ -66,6 +66,19 @@ float cube_vertices[] = {
     -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 };
 
+glm::vec3 cube_positions[] = {
+    glm::vec3( 0.0f,  0.0f,  0.0f), 
+    glm::vec3( 2.0f,  5.0f, -15.0f), 
+    glm::vec3(-1.5f, -2.2f, -2.5f),  
+    glm::vec3(-3.8f, -2.0f, -12.3f),  
+    glm::vec3( 2.4f, -0.4f, -3.5f),  
+    glm::vec3(-1.7f,  3.0f, -7.5f),  
+    glm::vec3( 1.3f, -2.0f, -2.5f),  
+    glm::vec3( 1.5f,  2.0f, -2.5f), 
+    glm::vec3( 1.5f,  0.2f, -1.5f), 
+    glm::vec3(-1.3f,  1.0f, -1.5f)  
+};
+
 int main() {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -200,19 +213,21 @@ int main() {
         
         // "activate" the shader program.
         our_shader.use();
-
-        // model coordinate/space matrix
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.5f, 1.0f, 0.0f));  // rotate on the x axis.
-
-        // set the corresponding uniform. 
-        int model_location = glGetUniformLocation(our_shader.ID, "model");
-        glUniformMatrix4fv(model_location, 1, GL_FALSE, glm::value_ptr(model));
-
-        // render the triangle.
         glBindVertexArray(VAO);
-        // function arguments: primitive type, starting index, vertice count.
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        // render 10 cubes.
+        for (unsigned int i = 0; i < 10; i++) {
+            // set model matrix.
+            glm::mat4 model = glm::mat4(1.0f);
+            model = glm::translate(model, cube_positions[i]);  // translate the cube to the specified position.
+            float angle = 20.0f * i;
+            model = glm::rotate(model, ((float)glfwGetTime() * glm::radians(angle)), glm::vec3(1.0f, 0.3f, 0.5f));
+            glUniformMatrix4fv(glGetUniformLocation(our_shader.ID, "model"), 1, GL_FALSE, glm::value_ptr(model));  // set model uniform.
+
+            // render cube.
+            // function arguments: primitive type, starting index, vertice count.
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
         
         glfwSwapBuffers(window);  // swap the (color) front(final output) and back(drawn/rendered to) buffers to prevent display flickering problems.
         glfwPollEvents();  // poll for input(keyboard/mouse) events, update the window state, call callbacks, etc.
