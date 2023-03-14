@@ -1,4 +1,4 @@
-#include <glad/glad.h>
+ #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <stb_image/stb_image.h>
 #include <glm/glm.hpp>
@@ -11,12 +11,14 @@
 #include <string>
 #include <defaults.h>
 
+// TODO: move to defaults namespace
 #define GL_WINDOW_WIDTH 640
 #define GL_WINDOW_HEIGHT 640
 
-void process_input(GLFWwindow *window, float camera_speed, float delta_time, glm::vec3& camera_position, glm::vec3 camera_front, glm::vec3 camera_right, glm::vec3 camera_up);
+void process_input(GLFWwindow *window, float camera_speed, float delta_time, glm::vec3& camera_position, glm::vec3 camera_front, glm::vec3 camera_up);
 // TODO: move elsewhere(public facing[include directory] header)
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
+void mouse_callback(GLFWwindow *window, double x_pos, double y_pos);
 
 float plane_vertices[] = {
      // positions         // colors           // texture coords
@@ -83,6 +85,13 @@ glm::vec3 cube_positions[] = {
     glm::vec3(-1.3f,  1.0f, -1.5f)  
 };
 
+// nooo! global variables!
+float yaw = -90.0f;
+float pitch = 0;
+bool first_mouse_callback = true;
+float last_x = GL_WINDOW_WIDTH / 2.0;
+float last_y = GL_WINDOW_HEIGHT / 2.0;
+
 int main() {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -103,9 +112,14 @@ int main() {
         return -1;
     }
 
+    // OpenGL configuration.
     glViewport(0, 0, GL_WINDOW_WIDTH, GL_WINDOW_HEIGHT);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);  // set GLFW to call frame buffer "resize" function for the viewport whenever the window/framebuffer's size is modified.
     glEnable(GL_DEPTH_TEST);  // enable z-buffer/depth testing functionality.
+
+    // GLFW configuration.
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);  // hide and capture the cursor.
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);  // set GLFW to call frame buffer "resize" function for the viewport whenever the window/framebuffer's size is modified.
+    glfwSetCursorPosCallback(window, mouse_callback);  // update yaw and pitch dependent on mouse move.
 
     unsigned int VBO;  // vertex buffer object.
     glGenBuffers(1, &VBO);
@@ -142,12 +156,12 @@ int main() {
     glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
     glm::vec3 camera_right = glm::normalize(glm::cross(up, camera_direction));
     glm::vec3 camera_up = glm::cross(camera_direction, camera_right); */
-
+    
     // set up camera coordinate system.
     glm::vec3 camera_position = glm::vec3(0.0f, 0.0f, 3.0f);
     glm::vec3 camera_front = glm::vec3(0.0f, 0.0f, -1.0f);
     glm::vec3 camera_up = glm::vec3(0.0f, 1.0f, 0.0f);
-    glm::vec3 camera_right = glm::normalize(glm::cross(camera_front, camera_up));
+    // glm::vec3 camera_right = glm::normalize(glm::cross(camera_front, camera_up));
 
     // set the projection coordinate/space matrix.
     glm::mat4 projection = glm::mat4(1.0f);
@@ -166,7 +180,7 @@ int main() {
         delta_time = current_frame - last_frame;
         last_frame = current_frame;
         
-        process_input(window, 8.0f, delta_time, camera_position, camera_front, camera_right, camera_up);  // test for window close key and camera movement keys.
+        process_input(window, 8.0f, delta_time, camera_position, glm::vec3(camera_front.x, 0.0f, camera_front.z), camera_up);  // test for window close key and camera movement keys.
 
         // fill the viewport with a RGB color.
         glClearColor(140.0f/255.0f, 140.0f/255.0f, 140.0f/255.0f, 255.0f/255.0f);
@@ -181,6 +195,13 @@ int main() {
         // "activate" the shader program.
         our_shader.use();
 
+        // set up the mouse-based direction.
+        glm::vec3 direction;
+        direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+        direction.y = sin(glm::radians(pitch));
+        direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+        camera_front = glm::normalize(direction);  // update camera_front.
+        
         // set the view matrix according to camera variables.
         glm::mat4 view = glm::lookAt(camera_position, camera_position + camera_front, camera_up);
         unsigned int view_location = glGetUniformLocation(our_shader.ID, "view");
@@ -214,8 +235,9 @@ int main() {
     return 0;
 }
 
-void process_input(GLFWwindow *window, float camera_speed, float delta_time, glm::vec3& camera_position, glm::vec3 camera_front, glm::vec3 camera_right, glm::vec3 camera_up)
+void process_input(GLFWwindow *window, float camera_speed, float delta_time, glm::vec3& camera_position, glm::vec3 camera_front, glm::vec3 camera_up)
 {
+    glm::vec3 camera_right = glm::normalize(glm::cross(camera_front, camera_up));
     const float delta_speed = camera_speed * delta_time;  // use delta time to avoid varying speeds depending on frame rate.
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_X))  // close window.
     {
@@ -250,4 +272,31 @@ void process_input(GLFWwindow *window, float camera_speed, float delta_time, glm
 void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 {
     glViewport(0, 0, width, height);
+}
+
+void mouse_callback(GLFWwindow *window, double x_pos, double y_pos)
+{
+    if (first_mouse_callback) {  // prevent view snapping.
+        last_x = x_pos;
+        last_y = y_pos;
+        first_mouse_callback = false;
+    }
+    float x_offset = x_pos - last_x;
+    float y_offset = last_y - y_pos;  // reversed since y-coordinates range from bottom to top.
+    last_x = x_pos;
+    last_y = y_pos;
+
+    const float sensitivity = 0.06f;
+    x_offset *= sensitivity;
+    y_offset *= sensitivity;
+    
+    yaw += x_offset;
+    pitch += y_offset;
+    // pitch constraints to prevent strange behavior.
+    if (pitch > 89.0f) {
+        pitch = 89.0f;
+    }
+    if (pitch < -89.0f) {
+        pitch = -89.0f;
+    }
 }
