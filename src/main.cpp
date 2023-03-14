@@ -14,7 +14,7 @@
 #define GL_WINDOW_WIDTH 640
 #define GL_WINDOW_HEIGHT 640
 
-void process_input(GLFWwindow *window);
+void process_input(GLFWwindow *window, float camera_speed, float delta_time, glm::vec3& camera_position, glm::vec3 camera_front, glm::vec3 camera_right, glm::vec3 camera_up);
 // TODO: move elsewhere(public facing[include directory] header)
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 
@@ -143,6 +143,12 @@ int main() {
     glm::vec3 camera_right = glm::normalize(glm::cross(up, camera_direction));
     glm::vec3 camera_up = glm::cross(camera_direction, camera_right); */
 
+    // set up camera coordinate system.
+    glm::vec3 camera_position = glm::vec3(0.0f, 0.0f, 3.0f);
+    glm::vec3 camera_front = glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 camera_up = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 camera_right = glm::normalize(glm::cross(camera_front, camera_up));
+
     // set the projection coordinate/space matrix.
     glm::mat4 projection = glm::mat4(1.0f);
     projection = glm::perspective(glm::radians(45.0f), (float)GL_WINDOW_WIDTH / (float)GL_WINDOW_HEIGHT, 0.1f, 100.0f);
@@ -150,10 +156,17 @@ int main() {
     // set the corresponding uniform.
     unsigned int projection_location = glGetUniformLocation(our_shader.ID, "projection");
     glUniformMatrix4fv(projection_location, 1, GL_FALSE, glm::value_ptr(projection));
+
+    float delta_time = 0.0f;  // time between the current frame and the last frame.
+    float last_frame = 0.0f;  // time of the last frame.
     
     // main "render loop".
     while (!glfwWindowShouldClose(window)) {
-        process_input(window);  // test for window close key.
+        float current_frame = glfwGetTime();
+        delta_time = current_frame - last_frame;
+        last_frame = current_frame;
+        
+        process_input(window, 8.0f, delta_time, camera_position, camera_front, camera_right, camera_up);  // test for window close key and camera movement keys.
 
         // fill the viewport with a RGB color.
         glClearColor(140.0f/255.0f, 140.0f/255.0f, 140.0f/255.0f, 255.0f/255.0f);
@@ -168,12 +181,8 @@ int main() {
         // "activate" the shader program.
         our_shader.use();
 
-        // set the view matrix.
-        const float radius = 10.0f;
-        float camera_x = sin(glfwGetTime()) * radius;
-        float camera_z = cos(glfwGetTime()) * radius;
-
-        glm::mat4 view = glm::lookAt(glm::vec3(camera_x, 0.0, camera_z), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+        // set the view matrix according to camera variables.
+        glm::mat4 view = glm::lookAt(camera_position, camera_position + camera_front, camera_up);
         unsigned int view_location = glGetUniformLocation(our_shader.ID, "view");
         glUniformMatrix4fv(view_location, 1, GL_FALSE, glm::value_ptr(view));
         
@@ -205,11 +214,36 @@ int main() {
     return 0;
 }
 
-void process_input(GLFWwindow *window)
+void process_input(GLFWwindow *window, float camera_speed, float delta_time, glm::vec3& camera_position, glm::vec3 camera_front, glm::vec3 camera_right, glm::vec3 camera_up)
 {
-    if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_X))
+    const float delta_speed = camera_speed * delta_time;  // use delta time to avoid varying speeds depending on frame rate.
+    if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_X))  // close window.
     {
         glfwSetWindowShouldClose(window, true);
+    }
+    if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_W))  // move camera forward.
+    {
+        camera_position += camera_front * delta_speed;
+    }
+    if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_S))  // move camera backward.
+    {
+        camera_position -= camera_front * delta_speed;
+    }
+    if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_A))  // move camera left.
+    {
+        camera_position -= camera_right * delta_speed;
+    }
+    if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_D))  // move camera right.
+    {
+        camera_position += camera_right * delta_speed;
+    }
+    if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_SPACE))  // move camera up.
+    {
+        camera_position += camera_up * delta_speed;
+    }
+    if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_LEFT_CONTROL))  // move camera down.
+    {
+        camera_position -= camera_up * delta_speed;
     }
 }
 
