@@ -135,15 +135,19 @@ int main() {
     our_shader.set_int("texture0", 0);
     our_shader.set_int("texture1", 1);
 
-    // set the coordinate/space matrices(model is set dynamically).
-    glm::mat4 view = glm::mat4(1.0f);
-    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));  // translate scene inverse of the camera.
+    // set up the "camera".
+    /* glm::vec3 camera_position = glm::vec3(0.0f, 0.0f, 3.0f);
+    glm::vec3 camera_target = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 camera_direction = glm::normalize(camera_position - camera_target);  // vector of the "opposite" of our camera's actual direction.
+    glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 camera_right = glm::normalize(glm::cross(up, camera_direction));
+    glm::vec3 camera_up = glm::cross(camera_direction, camera_right); */
+
+    // set the projection coordinate/space matrix.
     glm::mat4 projection = glm::mat4(1.0f);
     projection = glm::perspective(glm::radians(45.0f), (float)GL_WINDOW_WIDTH / (float)GL_WINDOW_HEIGHT, 0.1f, 100.0f);
 
-    // set the corresponding uniforms.
-    unsigned int view_location = glGetUniformLocation(our_shader.ID, "view");
-    glUniformMatrix4fv(view_location, 1, GL_FALSE, glm::value_ptr(view));
+    // set the corresponding uniform.
     unsigned int projection_location = glGetUniformLocation(our_shader.ID, "projection");
     glUniformMatrix4fv(projection_location, 1, GL_FALSE, glm::value_ptr(projection));
     
@@ -163,6 +167,15 @@ int main() {
         
         // "activate" the shader program.
         our_shader.use();
+
+        // set the view matrix.
+        const float radius = 10.0f;
+        float camera_x = sin(glfwGetTime()) * radius;
+        float camera_z = cos(glfwGetTime()) * radius;
+
+        glm::mat4 view = glm::lookAt(glm::vec3(camera_x, 0.0, camera_z), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+        unsigned int view_location = glGetUniformLocation(our_shader.ID, "view");
+        glUniformMatrix4fv(view_location, 1, GL_FALSE, glm::value_ptr(view));
         
         glBindVertexArray(VAO);
         // render 10 cubes.
