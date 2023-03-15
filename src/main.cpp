@@ -1,4 +1,4 @@
- #include <glad/glad.h>
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <stb_image/stb_image.h>
 #include <glm/glm.hpp>
@@ -10,15 +10,10 @@
 #include <texture.h>
 #include <string>
 #include <defaults.h>
-
-// TODO: move to defaults namespace
-#define GL_WINDOW_WIDTH 640
-#define GL_WINDOW_HEIGHT 640
+#include <callbacks.h>
+#include <window.h>
 
 void process_input(GLFWwindow *window, float camera_speed, float delta_time, glm::vec3& camera_position, glm::vec3 camera_front, glm::vec3 camera_up);
-// TODO: move elsewhere(public facing[include directory] header)
-void framebuffer_size_callback(GLFWwindow *window, int width, int height);
-void mouse_callback(GLFWwindow *window, double x_pos, double y_pos);
 
 float plane_vertices[] = {
      // positions         // colors           // texture coords
@@ -26,7 +21,7 @@ float plane_vertices[] = {
      0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
     -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
     -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // top left 
-};  // TODO: custom model implementation or generic vec3 class."
+};
 
 float cube_vertices[] = {
     -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
@@ -85,26 +80,9 @@ glm::vec3 cube_positions[] = {
     glm::vec3(-1.3f,  1.0f, -1.5f)  
 };
 
-// nooo! global variables!
-float yaw = -90.0f;
-float pitch = 0;
-bool first_mouse_callback = true;
-float last_x = GL_WINDOW_WIDTH / 2.0;
-float last_y = GL_WINDOW_HEIGHT / 2.0;
-
 int main() {
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-    GLFWwindow *window = glfwCreateWindow(GL_WINDOW_WIDTH, GL_WINDOW_HEIGHT, defaults::project_name, NULL, NULL);  // function arguments(in reference to the window): width, height, name, ?, ?.
-    if (window == nullptr) {
-        std::cerr << "ERROR::GLFW::WINDOW::INITIALIZATION_FAILED\n" << std::endl;
-        glfwTerminate();
-        return -1;
-    }
-    glfwMakeContextCurrent(window);
+    glfw_window window(3, 3, defaults::window_width, defaults::window_height, "opengl-learning");
+    defaults::active_window = window;
 
     int gladInitResult = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);  // load the address of the OS-specific OpenGL function pointers.
     if (!gladInitResult) {
@@ -113,13 +91,8 @@ int main() {
     }
 
     // OpenGL configuration.
-    glViewport(0, 0, GL_WINDOW_WIDTH, GL_WINDOW_HEIGHT);
+    glViewport(0, 0, defaults::active_window.window_width, defaults::active_window.window_height);
     glEnable(GL_DEPTH_TEST);  // enable z-buffer/depth testing functionality.
-
-    // GLFW configuration.
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);  // hide and capture the cursor.
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);  // set GLFW to call frame buffer "resize" function for the viewport whenever the window/framebuffer's size is modified.
-    glfwSetCursorPosCallback(window, mouse_callback);  // update yaw and pitch dependent on mouse move.
 
     unsigned int VBO;  // vertex buffer object.
     glGenBuffers(1, &VBO);
@@ -148,14 +121,6 @@ int main() {
     our_shader.use();
     our_shader.set_int("texture0", 0);
     our_shader.set_int("texture1", 1);
-
-    // set up the "camera".
-    /* glm::vec3 camera_position = glm::vec3(0.0f, 0.0f, 3.0f);
-    glm::vec3 camera_target = glm::vec3(0.0f, 0.0f, 0.0f);
-    glm::vec3 camera_direction = glm::normalize(camera_position - camera_target);  // vector of the "opposite" of our camera's actual direction.
-    glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-    glm::vec3 camera_right = glm::normalize(glm::cross(up, camera_direction));
-    glm::vec3 camera_up = glm::cross(camera_direction, camera_right); */
     
     // set up camera coordinate system.
     glm::vec3 camera_position = glm::vec3(0.0f, 0.0f, 3.0f);
@@ -165,22 +130,22 @@ int main() {
 
     // set the projection coordinate/space matrix.
     glm::mat4 projection = glm::mat4(1.0f);
-    projection = glm::perspective(glm::radians(45.0f), (float)GL_WINDOW_WIDTH / (float)GL_WINDOW_HEIGHT, 0.1f, 100.0f);
+    projection = glm::perspective(glm::radians(45.0f), (float)defaults::active_window.window_width / (float)defaults::active_window.window_height, 0.1f, 100.0f);
 
     // set the corresponding uniform.
     unsigned int projection_location = glGetUniformLocation(our_shader.ID, "projection");
     glUniformMatrix4fv(projection_location, 1, GL_FALSE, glm::value_ptr(projection));
 
     float delta_time = 0.0f;  // time between the current frame and the last frame.
-    float last_frame = 0.0f;  // time of the last frame.
+    float last_frame = 0.0f;  // time of the last frame.n
     
     // main "render loop".
-    while (!glfwWindowShouldClose(window)) {
+    while (!glfwWindowShouldClose(defaults::active_window.window)) {
         float current_frame = glfwGetTime();
         delta_time = current_frame - last_frame;
         last_frame = current_frame;
         
-        process_input(window, 8.0f, delta_time, camera_position, glm::vec3(camera_front.x, 0.0f, camera_front.z), camera_up);  // test for window close key and camera movement keys.
+        process_input(defaults::active_window.window, 8.0f, delta_time, camera_position, glm::vec3(camera_front.x, 0.0f, camera_front.z), camera_up);  // test for window close key and camera movement keys.
 
         // fill the viewport with a RGB color.
         glClearColor(140.0f/255.0f, 140.0f/255.0f, 140.0f/255.0f, 255.0f/255.0f);
@@ -197,9 +162,9 @@ int main() {
 
         // set up the mouse-based direction.
         glm::vec3 direction;
-        direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-        direction.y = sin(glm::radians(pitch));
-        direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+        direction.x = cos(glm::radians(defaults::active_window.mouse_yaw)) * cos(glm::radians(defaults::active_window.mouse_pitch));
+        direction.y = sin(glm::radians(defaults::active_window.mouse_pitch));
+        direction.z = sin(glm::radians(defaults::active_window.mouse_yaw)) * cos(glm::radians(defaults::active_window.mouse_pitch));
         camera_front = glm::normalize(direction);  // update camera_front.
         
         // set the view matrix according to camera variables.
@@ -222,7 +187,7 @@ int main() {
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
         
-        glfwSwapBuffers(window);  // swap the (color) front(final output) and back(drawn/rendered to) buffers to prevent display flickering problems.
+        glfwSwapBuffers(defaults::active_window.window);  // swap the (color) front(final output) and back(drawn/rendered to) buffers to prevent display flickering problems.
         glfwPollEvents();  // poll for input(keyboard/mouse) events, update the window state, call callbacks, etc.
     }
 
@@ -266,37 +231,5 @@ void process_input(GLFWwindow *window, float camera_speed, float delta_time, glm
     if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_LEFT_CONTROL))  // move camera down.
     {
         camera_position -= camera_up * delta_speed;
-    }
-}
-
-void framebuffer_size_callback(GLFWwindow *window, int width, int height)
-{
-    glViewport(0, 0, width, height);
-}
-
-void mouse_callback(GLFWwindow *window, double x_pos, double y_pos)
-{
-    if (first_mouse_callback) {  // prevent view snapping.
-        last_x = x_pos;
-        last_y = y_pos;
-        first_mouse_callback = false;
-    }
-    float x_offset = x_pos - last_x;
-    float y_offset = last_y - y_pos;  // reversed since y-coordinates range from bottom to top.
-    last_x = x_pos;
-    last_y = y_pos;
-
-    const float sensitivity = 0.06f;
-    x_offset *= sensitivity;
-    y_offset *= sensitivity;
-    
-    yaw += x_offset;
-    pitch += y_offset;
-    // pitch constraints to prevent strange behavior.
-    if (pitch > 89.0f) {
-        pitch = 89.0f;
-    }
-    if (pitch < -89.0f) {
-        pitch = -89.0f;
     }
 }
