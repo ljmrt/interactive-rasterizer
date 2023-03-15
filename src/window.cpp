@@ -4,6 +4,19 @@
 #include <callbacks.h>
 #include <iostream>
 
+glfw_window::glfw_window()
+{
+    window_width = 0;
+    window_height = 0;
+
+    mouse_yaw = 0;
+    mouse_pitch = 0;
+    mouse_first_callback = false;
+    mouse_last_x = 0;
+    mouse_last_y = 0;
+    mouse_look_sensitivity = 0;
+}
+
 glfw_window::glfw_window(int major, int minor, int width, int height, const char *name)
 {
     glfwInit();

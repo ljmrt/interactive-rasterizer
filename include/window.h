@@ -17,7 +17,8 @@ public:
     float mouse_last_x;
     float mouse_last_y;
     float mouse_look_sensitivity;
-    
+
+    glfw_window();
     glfw_window(int major, int minor, int width, int height, const char *name);
 };
 
